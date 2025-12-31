@@ -8,32 +8,39 @@
 using namespace std;
 
 // -------------------
-// İş Zamanlama (Shortest job first)
+// Is Zamanlama (Job Sequencing with Deadlines)
 // -------------------
 struct Job {
-    int id;
-    int time;
+    char id;
+    int deadline;
+    int profit;
 };
 
-void jobScheduling(vector<Job>& jobs) {
+void isZamanlama(vector<Job> jobs) {
+    // En yuksek kardan basla
     sort(jobs.begin(), jobs.end(), [](const Job& a, const Job& b) {
-        return a.time < b.time;
+        return a.profit > b.profit;
     });
 
-    cout << "Siralama (kisa is once): ";
-    for (auto& j : jobs) cout << "J" << j.id << "(" << j.time << ") ";
-    cout << "\n";
+    int maxD = 0;
+    for (auto& j : jobs) maxD = max(maxD, j.deadline);
 
-    long long toplamBitis = 0;
-    int cur = 0;
+    vector<char> slot(maxD + 1, '-');
+    int toplamKar = 0;
 
-    cout << "Tamamlanma sureleri: ";
     for (auto& j : jobs) {
-        cur += j.time;
-        toplamBitis += cur;
-        cout << cur << " ";
+        for (int t = min(maxD, j.deadline); t >= 1; t--) {
+            if (slot[t] == '-') {
+                slot[t] = j.id;
+                toplamKar += j.profit;
+                break;
+            }
+        }
     }
-    cout << "\nOrtalama tamamlanma: " << (double)toplamBitis / jobs.size() << "\n";
+
+    cout << "Slotlar: ";
+    for (int t = 1; t <= maxD; t++) cout << slot[t] << " ";
+    cout << "\nToplam kar: " << toplamKar << "\n";
 }
 
 // -------------------
@@ -45,51 +52,42 @@ struct Activity {
     int finish;
 };
 
-void activityScheduling(vector<Activity>& acts) {
+void aktiviteZamanlama(vector<Activity> acts) {
     sort(acts.begin(), acts.end(), [](const Activity& a, const Activity& b) {
         return a.finish < b.finish;
     });
 
-    cout << "Finish'e gore sirali: ";
-    for (auto& a : acts) cout << "a" << a.id << "[" << a.start << "-" << a.finish << "] ";
-    cout << "\n";
-
     cout << "Secilen aktiviteler: ";
-    int last = 0;
-    cout << "a" << acts[last].id << " ";
-    for (int i = 1; i < (int)acts.size(); i++) {
-        if (acts[i].start >= acts[last].finish) {
-            cout << "a" << acts[i].id << " ";
-            last = i;
+    int lastFinish = -1;
+    for (auto& a : acts) {
+        if (a.start >= lastFinish) {
+            cout << "a" << a.id << " ";
+            lastFinish = a.finish;
         }
     }
     cout << "\n";
 }
 
 // -------------------
-// Huffman (encode / decode)
+// Huffman (encode/decode)
 // -------------------
 struct Node {
     char ch;
     int freq;
     Node* left;
     Node* right;
-
     Node(char c, int f) : ch(c), freq(f), left(nullptr), right(nullptr) {}
     Node(Node* l, Node* r) : ch('\0'), freq(l->freq + r->freq), left(l), right(r) {}
 };
 
 struct Cmp {
-    bool operator()(Node* a, Node* b) {
-        return a->freq > b->freq; // min-heap
-    }
+    bool operator()(Node* a, Node* b) { return a->freq > b->freq; }
 };
 
 void buildCodes(Node* root, string path, string codes[256]) {
     if (!root) return;
-
     if (!root->left && !root->right) {
-        codes[(unsigned char)root->ch] = (path.empty() ? "0" : path);
+        codes[(unsigned char)root->ch] = path.empty() ? "0" : path;
         return;
     }
     buildCodes(root->left, path + "0", codes);
@@ -105,10 +103,7 @@ string encodeText(const string& text, string codes[256]) {
 string decodeBits(Node* root, const string& bits) {
     string out;
     Node* cur = root;
-
     for (char b : bits) {
-        if (!cur) return "(decode hata)";
-
         cur = (b == '0') ? cur->left : cur->right;
         if (cur && !cur->left && !cur->right) {
             out.push_back(cur->ch);
@@ -130,12 +125,11 @@ void huffmanDemo(const string& text) {
     for (char c : text) freq[(unsigned char)c]++;
 
     priority_queue<Node*, vector<Node*>, Cmp> pq;
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < 256; i++)
         if (freq[i] > 0) pq.push(new Node((char)i, freq[i]));
-    }
 
     if (pq.empty()) {
-        cout << "Huffman: metin bos\n";
+        cout << "Metin bos.\n";
         return;
     }
 
@@ -150,11 +144,9 @@ void huffmanDemo(const string& text) {
     string codes[256];
     buildCodes(root, "", codes);
 
-    cout << "Karakter kodlari:\n";
+    cout << "Kodlar:\n";
     for (int i = 0; i < 256; i++) {
-        if (!codes[i].empty()) {
-            cout << "  '" << (char)i << "' : " << codes[i] << "\n";
-        }
+        if (!codes[i].empty()) cout << "  '" << (char)i << "' : " << codes[i] << "\n";
     }
 
     string bits = encodeText(text, codes);
@@ -170,29 +162,38 @@ int main() {
     cout << "GREEDY ALGORITMALAR\n";
     cout << "-------------------\n";
 
-    // 1) İş Zamanlama
-    vector<Job> jobs = { {1,15}, {2,8}, {3,3}, {4,10} };
+    // 1) Is Zamanlama (deadline+profit)
+    vector<Job> jobs = {
+        {'a',2,100},
+        {'b',1,19},
+        {'c',2,27},
+        {'d',1,25},
+        {'e',3,15}
+    };
+
     auto t1 = chrono::high_resolution_clock::now();
-    cout << "[1] Is Zamanlama\n";
-    jobScheduling(jobs);
+    cout << "[Is Zamanlama]\n";
+    isZamanlama(jobs);
     auto t2 = chrono::high_resolution_clock::now();
     cout << "Sure: " << chrono::duration_cast<chrono::microseconds>(t2 - t1).count() << " us\n\n";
 
-    // 2) Aktivite
+    // 2) Aktivite Zamanlama
     vector<Activity> acts = {
         {1,1,4},{2,3,5},{3,0,6},{4,5,7},{5,3,8},
         {6,5,9},{7,6,10},{8,8,11},{9,8,12},{10,2,13},{11,12,14}
     };
+
     t1 = chrono::high_resolution_clock::now();
-    cout << "[2] Aktivite Zamanlama\n";
-    activityScheduling(acts);
+    cout << "[Aktivite Zamanlama]\n";
+    aktiviteZamanlama(acts);
     t2 = chrono::high_resolution_clock::now();
     cout << "Sure: " << chrono::duration_cast<chrono::microseconds>(t2 - t1).count() << " us\n\n";
 
     // 3) Huffman
-    cout << "[3] Huffman Encode/Decode\n";
+    cout << "[Huffman Encode/Decode]\n";
     string text = "ABBCCCDDDDEEEEEFF";
-    cout << "Girdi metin: " << text << "\n";
+    cout << "Metin: " << text << "\n";
+
     t1 = chrono::high_resolution_clock::now();
     huffmanDemo(text);
     t2 = chrono::high_resolution_clock::now();
