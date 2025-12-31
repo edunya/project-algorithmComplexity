@@ -1,123 +1,117 @@
+#define NOMINMAX
 #include <iostream>
 #include <vector>
-#include <random>
 #include <chrono>
+#include <random>
 #include <algorithm>
 
-long long alg1_n3(const std::vector<int>& a) {
-    long long best = 0;
-    int n = (int)a.size();
+using namespace std;
 
-    for (int i = 0; i < n; i++) {
-        for (int j = i; j < n; j++) {
-            long long sum = 0;
-            for (int k = i; k <= j; k++) sum += a[k];
-            if (sum > best) best = sum;
+// O(n^3)
+int maxSubSum1(const vector<int>& a) {
+    int maxSum = 0;
+    for (int i = 0; i < (int)a.size(); i++) {
+        for (int j = i; j < (int)a.size(); j++) {
+            int thisSum = 0;
+            for (int k = i; k <= j; k++) thisSum += a[k];
+            maxSum = max(maxSum, thisSum);
         }
     }
-    return best;
+    return maxSum;
 }
 
-long long alg2_n2(const std::vector<int>& a) {
-    long long best = 0;
-    int n = (int)a.size();
-
-    for (int i = 0; i < n; i++) {
-        long long sum = 0;
-        for (int j = i; j < n; j++) {
-            sum += a[j];
-            if (sum > best) best = sum;
+// O(n^2)
+int maxSubSum2(const vector<int>& a) {
+    int maxSum = 0;
+    for (int i = 0; i < (int)a.size(); i++) {
+        int thisSum = 0;
+        for (int j = i; j < (int)a.size(); j++) {
+            thisSum += a[j];
+            maxSum = max(maxSum, thisSum);
         }
     }
-    return best;
+    return maxSum;
 }
 
-// divide & conquer yardımcıları
-long long cross_sum(const std::vector<int>& a, int l, int m, int r) {
-    long long bestL = 0, sum = 0;
-    for (int i = m; i >= l; i--) {
-        sum += a[i];
-        if (sum > bestL) bestL = sum;
+static inline int max3(int x, int y, int z) {
+    return max(x, max(y, z));
+}
+
+// O(n log n) Divide & Conquer
+int maxSubSumRec(const vector<int>& a, int left, int right) {
+    if (left == right) return (a[left] > 0) ? a[left] : 0;
+
+    int mid = (left + right) / 2;
+    int leftBest = maxSubSumRec(a, left, mid);
+    int rightBest = maxSubSumRec(a, mid + 1, right);
+
+    int leftBorderBest = 0, leftBorderSum = 0;
+    for (int i = mid; i >= left; i--) {
+        leftBorderSum += a[i];
+        leftBorderBest = max(leftBorderBest, leftBorderSum);
     }
 
-    long long bestR = 0;
-    sum = 0;
-    for (int i = m + 1; i <= r; i++) {
-        sum += a[i];
-        if (sum > bestR) bestR = sum;
+    int rightBorderBest = 0, rightBorderSum = 0;
+    for (int i = mid + 1; i <= right; i++) {
+        rightBorderSum += a[i];
+        rightBorderBest = max(rightBorderBest, rightBorderSum);
     }
 
-    return bestL + bestR;
+    return max3(leftBest, rightBest, leftBorderBest + rightBorderBest);
 }
 
-long long divconq_rec(const std::vector<int>& a, int l, int r) {
-    if (l == r) return std::max(0, a[l]);
-
-    int m = l + (r - l) / 2;
-    long long left = divconq_rec(a, l, m);
-    long long right = divconq_rec(a, m + 1, r);
-    long long cross = cross_sum(a, l, m, r);
-
-    return std::max(left, std::max(right, cross));
+int maxSubSum3(const vector<int>& a) {
+    return maxSubSumRec(a, 0, (int)a.size() - 1);
 }
 
-long long alg3_nlogn(const std::vector<int>& a) {
-    if (a.empty()) return 0;
-    return divconq_rec(a, 0, (int)a.size() - 1);
-}
-
-// Kadane O(n)
-long long alg4_n(const std::vector<int>& a) {
-    long long best = 0;
-    long long cur = 0;
+// O(n) Kadane
+int maxSubSum4(const vector<int>& a) {
+    int maxSum = 0, thisSum = 0;
     for (int x : a) {
-        cur = cur + x;
-        if (cur < 0) cur = 0;
-        if (cur > best) best = cur;
+        thisSum += x;
+        if (thisSum > maxSum) maxSum = thisSum;
+        else if (thisSum < 0) thisSum = 0;
     }
-    return best;
-}
-
-std::vector<int> rastgele_dizi(int n, int lo, int hi) {
-    std::mt19937 rng((unsigned)std::chrono::steady_clock::now().time_since_epoch().count());
-    std::uniform_int_distribution<int> dist(lo, hi);
-
-    std::vector<int> a(n);
-    for (int i = 0; i < n; i++) a[i] = dist(rng);
-    return a;
-}
-
-long long zaman_olc_ve_sonuc(const std::vector<int>& a,
-                            long long (*fn)(const std::vector<int>&),
-                            long long& sonuc) {
-    auto t0 = std::chrono::steady_clock::now();
-    sonuc = fn(a);
-    auto t1 = std::chrono::steady_clock::now();
-    return std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+    return maxSum;
 }
 
 int main() {
-    int N = 1500;
-    int lo = -100, hi = 100;
+    cout << "MAXIMUM SUBSEQUENCE PROBLEMI\n";
+    cout << "----------------------------\n";
 
-    std::vector<int> A = rastgele_dizi(N, lo, hi);
+    // O(n^3) olduğu için N çok büyütülürse aşırı yavaşlar.
+    // Burada tüm yaklaşımlar için aynı veri kullanılıyor.
+    int N = 500;
 
-    long long s1, s2, s3, s4;
-    long long t1 = zaman_olc_ve_sonuc(A, alg1_n3, s1);
-    long long t2 = zaman_olc_ve_sonuc(A, alg2_n2, s2);
-    long long t3 = zaman_olc_ve_sonuc(A, alg3_nlogn, s3);
-    long long t4 = zaman_olc_ve_sonuc(A, alg4_n, s4);
+    vector<int> A(N);
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dist(-50, 50);
+    for (int i = 0; i < N; i++) A[i] = dist(gen);
 
-    std::cout << "N=" << N << "  aralik=[" << lo << "," << hi << "]\n";
-    std::cout << "Alg1 O(n^3)     : " << t1 << " ms  Sonuc=" << s1 << "\n";
-    std::cout << "Alg2 O(n^2)     : " << t2 << " ms  Sonuc=" << s2 << "\n";
-    std::cout << "Alg3 O(n log n) : " << t3 << " ms  Sonuc=" << s3 << "\n";
-    std::cout << "Alg4 O(n)       : " << t4 << " ms  Sonuc=" << s4 << "\n";
+    auto t0 = chrono::high_resolution_clock::now();
+    int s1 = maxSubSum1(A);
+    auto t1 = chrono::high_resolution_clock::now();
+    cout << "Alg1 O(n^3)   : " << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count()
+         << " ms | sonuc=" << s1 << "\n";
 
-    // basit doğrulama
-    if (!(s1 == s4 && s2 == s4 && s3 == s4)) {
-        std::cout << "Uyari: algoritmalar ayni sonucu vermedi.\n";
-    }
+    t0 = chrono::high_resolution_clock::now();
+    int s2 = maxSubSum2(A);
+    t1 = chrono::high_resolution_clock::now();
+    cout << "Alg2 O(n^2)   : " << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count()
+         << " ms | sonuc=" << s2 << "\n";
+
+    t0 = chrono::high_resolution_clock::now();
+    int s3 = maxSubSum3(A);
+    t1 = chrono::high_resolution_clock::now();
+    cout << "Alg3 O(nlogn) : " << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count()
+         << " ms | sonuc=" << s3 << "\n";
+
+    t0 = chrono::high_resolution_clock::now();
+    int s4 = maxSubSum4(A);
+    t1 = chrono::high_resolution_clock::now();
+    cout << "Alg4 O(n)     : " << chrono::duration_cast<chrono::milliseconds>(t1 - t0).count()
+         << " ms | sonuc=" << s4 << "\n";
 
     return 0;
 }
