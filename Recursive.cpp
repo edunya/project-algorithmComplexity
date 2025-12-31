@@ -5,14 +5,16 @@ using namespace std;
 // 1) 1+2+...+N
 int toplama_1denN(int n, int& sayac) {
     sayac++;
-    if (n <= 1) return 1;
+    if (n <= 0) return 0;
+    if (n == 1) return 1;
     return toplama_1denN(n - 1, sayac) + n;
 }
 
-// 2) Dizi toplamı
+// 2) Dizi toplami
 int diziToplami(const int A[], int N, int& sayac) {
     sayac++;
-    if (N <= 1) return A[0];
+    if (N <= 0) return 0;
+    if (N == 1) return A[0];
     return diziToplami(A, N - 1, sayac) + A[N - 1];
 }
 
@@ -40,18 +42,17 @@ int fib(int n, int& sayac) {
 void hanoi(int n, int kaynak, int hedef, int yedek, int& sayac) {
     sayac++;
     if (n == 0) return;
-
     hanoi(n - 1, kaynak, yedek, hedef, sayac);
     cout << "Disk " << n << ": " << kaynak << " -> " << hedef << "\n";
     hanoi(n - 1, yedek, hedef, kaynak, sayac);
 }
 
 // 6) Recursive Digit Sum
-int tekSeferdeRakamToplami(int n) {
+int rakamToplaTekSefer(int x) {
     int s = 0;
-    while (n > 0) {
-        s += (n % 10);
-        n /= 10;
+    while (x > 0) {
+        s += (x % 10);
+        x /= 10;
     }
     return s;
 }
@@ -59,7 +60,7 @@ int tekSeferdeRakamToplami(int n) {
 int recursiveDigitSum(int n, int& sayac) {
     sayac++;
     if (n < 10) return n;
-    return recursiveDigitSum(tekSeferdeRakamToplami(n), sayac);
+    return recursiveDigitSum(rakamToplaTekSefer(n), sayac);
 }
 
 int main() {
